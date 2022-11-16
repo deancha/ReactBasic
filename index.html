@@ -38,7 +38,14 @@
 
   <script type="text/babel">
     //console.log(tag[Math.floor(Math.random() * tag.length)]);
-
+    const jsonLocalStorage = {
+      setItem: (key, value) => {
+        localStorage.setItem(key, JSON.stringify(value));
+      },
+      getItem: (key) => {
+        return JSON.parse(localStorage.getItem(key));
+      },
+    };
 
     const Title = (props) =>{
       return (
@@ -47,11 +54,29 @@
     }
 
 
-    const Form = ({handleFormSubmit}) =>{
+    const Form = ({updateMainCat}) =>{
+      const includesHangul = (text) => /[ㄱ-ㅎ|ㅏ-ㅣ|가-힣]/i.test(text);
       const [value, setValue] = React.useState('');
-
+      const [errorMessage, setErrorMessage] = React.useState('');
+      
       function handleInputChange(e){
-        setValue(e.target.value.toUpperCase());
+        const userValue = e.target.value;
+        setErrorMessage('');
+        if(includesHangul(userValue)){
+          setErrorMessage('한글은 입력할 수 없습니다.')
+          return;
+        }
+        setValue(userValue.toUpperCase());
+      }
+
+      function handleFormSubmit(e){
+        e.preventDefault();
+        setErrorMessage('');
+        if(value===''){
+          setErrorMessage('빈 값으로 만들 수 없습니다.')
+          return;
+        }
+        updateMainCat();
       }
       return (
         <form onSubmit={handleFormSubmit}>
@@ -64,6 +89,7 @@
           />
 
           <button type="submit">생성</button>
+          <p style={{color:"red"}}>{errorMessage}</p>
         </form>
       );
     }
@@ -89,14 +115,14 @@
       );
     }
 
-    const MainCard = ({img,handleHeartClick}) =>{
+    const MainCard = ({img,onHeartClick}) =>{
 
 
       return (
         <div className="main-card">
           <img src={img} alt="고양이" width="400" />
           <button 
-            onClick={handleHeartClick} 
+            onClick={onHeartClick} 
           >
           ❤
           </button>
@@ -109,26 +135,28 @@
       const CAT2 = "https://cataas.com//cat/Beer/says/inflearn";
       const CAT3 = "https://cataas.com//cat/Belfast/says/dongwoo";
 
-      const [counter, setCounter] = React.useState(1);
+      const [counter, setCounter] = React.useState(Number(jsonLocalStorage.getItem('counter')));
       const [mainCat, setMainCat] = React.useState(CAT1);
-      const [favorites, setFavorites] = React.useState([CAT1, CAT2]);
+      const [favorites, setFavorites] = React.useState(jsonLocalStorage.getItem('favorites') || []);
       
-      function handleFormSubmit(event){
-        event.preventDefault();
-        setCounter(counter+1);
+      function updateMainCat(){
         setMainCat(CAT2);
+        const nextCounter = counter + 1;
+        setCounter(nextCounter);
+        jsonLocalStorage.setItem('counter', nextCounter);
       }
 
       function handleHeartClick(){
-        //고양이 사진 추가
-        setFavorites([...favorites, CAT3]);
+        const nextFavorites = [...favorites, mainCat];
+        setFavorites(nextFavorites);
+        jsonLocalStorage.setItem('favorites',nextFavorites);
       }
 
       return (
         <div>
           <Title>{counter}번째 고양이 가라사대</Title>
-          <Form handleFormSubmit={handleFormSubmit}/>
-          <MainCard img={mainCat} handleHeartClick={handleHeartClick}/>
+          <Form updateMainCat={updateMainCat}/>
+          <MainCard img={mainCat} onHeartClick={handleHeartClick}/>
           <Favorites favorites={favorites}/>
         </div>
       );
